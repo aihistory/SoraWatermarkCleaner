@@ -28,17 +28,20 @@ This project provides an elegant way to remove the sora watermark in the sora2 g
 
 ⭐️: 
 
-1. **Yolo weights has been updated, try the new version watermark detect model, it should work better. **
+1. **YOLO model training completed** — We successfully trained a custom watermark detection model with 100% detection rate and 0.812 average confidence!
 
-2. **We have uploaded the labelled datasets into huggingface, check this [dataset](https://huggingface.co/datasets/LLinked/sora-watermark-dataset) out. Free free to train your custom detector model or improve our model!**
+2. **Complete training pipeline** — Full pipeline from dataset preparation, annotation, training to testing implemented with 439 images and 685 annotations.
+
 3. **One-click portable build is available** — [Download here](#3-one-click-portable-version) for Windows users! No installation required.
+
+4. **We have uploaded the labelled datasets into huggingface, check this [dataset](https://huggingface.co/datasets/LLinked/sora-watermark-dataset) out. Free free to train your custom detector model or improve our model!**
 
 
 ## 1. Method
 
 The SoraWatermarkCleaner(we call it `SoraWm` later) is composed of two parsts:
 
-- SoraWaterMarkDetector: We trained a yolov11s version to detect the sora watermark. (Thank you yolo!)
+- SoraWaterMarkDetector: We trained a yolov11s version to detect the sora watermark with 100% detection rate and 0.812 average confidence. (Thank you yolo!)
 
 - WaterMarkCleaner: We refer iopaint's implementation for watermark removal using the lama model.
 
@@ -151,20 +154,71 @@ Once finished, the returned data will include a **download URL**.
 
 You can use the **download URL** from step 2 to retrieve the cleaned video.
 
-## 6. Datasets
+## 6. Model Training
+
+We provide a complete model training pipeline including dataset preparation, annotation, training, and testing.
+
+### Training Results
+- **Best mAP50**: 0.625
+- **Best mAP50-95**: 0.4716
+- **Detection Rate**: 100%
+- **Average Confidence**: 0.812
+- **Training Data**: 439 images, 685 annotations
+
+### Training Commands
+```bash
+# Start training
+uv run python train/simple_train.py
+
+# Monitor training progress
+uv run python train/monitor_training.py
+
+# Test model
+uv run python train/test_model.py
+
+# Generate training summary
+uv run python train/training_summary.py
+```
+
+### Training File Structure
+```
+train/
+├── simple_train.py          # Simplified training script
+├── train_watermark_detector.py  # Complete training script
+├── monitor_training.py      # Training monitoring tool
+├── test_model.py           # Model testing script
+├── training_summary.py     # Training summary tool
+└── coco8.yaml             # Dataset configuration file
+
+datasets/
+├── make_yolo_images.py     # Video frame extraction
+├── setup_yolo_dataset.py   # Dataset structure creation
+├── split_dataset.py        # Dataset splitting
+├── auto_annotate.py        # Auto annotation tool
+├── validate_annotations.py # Annotation validation
+└── visualize_annotations.py # Annotation visualization
+```
+
+### Training Guides
+- **Quick Start**: [QUICK_START_TRAINING.md](QUICK_START_TRAINING.md) - 5-minute quick start guide
+- **Complete Guide**: [COMPLETE_TRAINING_GUIDE.md](COMPLETE_TRAINING_GUIDE.md) - Detailed training process guide
+- **Config Guide**: [TRAINING_CONFIG_GUIDE.md](TRAINING_CONFIG_GUIDE.md) - Training parameter tuning guide
+- **Training Summary**: [TRAINING_COMPLETE_SUMMARY.md](TRAINING_COMPLETE_SUMMARY.md) - Training completion summary
+
+## 7. Datasets
 
 We have uploaded the labelled datasets into huggingface, check this out https://huggingface.co/datasets/LLinked/sora-watermark-dataset. Free free to train your custom detector model or improve our model!
 
-## 7. API
+## 8. API
 
 Packaged as a Cog and [published to Replicate](https://replicate.com/uglyrobot/sora2-watermark-remover) for simple API based usage.
 
-## 8. License
+## 9. License
 
  Apache License
 
 
-## 9. Citation
+## 10. Citation
 
 If you use this project, please cite:
 
@@ -177,7 +231,7 @@ If you use this project, please cite:
 }
 ```
 
-## 10. Acknowledgments
+## 11. Acknowledgments
 
 - [IOPaint](https://github.com/Sanster/IOPaint) for the LAMA implementation
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) for object detection

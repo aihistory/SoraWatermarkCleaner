@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>简单标注测试</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-area { border: 2px solid #ccc; width: 400px; height: 300px; position: relative; margin: 20px 0; }
+        .annotation { position: absolute; border: 2px solid red; background: rgba(255,0,0,0.1); }
+        .controls { margin: 20px 0; }
+        .btn { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🧪 简单标注测试</h1>
+    
+    <div class="controls">
+        <button class="btn" onclick="addAnnotation()">添加标注</button>
+        <button class="btn" onclick="saveAnnotations()">保存标注</button>
+        <button class="btn" onclick="loadAnnotations()">加载标注</button>
+        <button class="btn" onclick="clearAnnotations()">清空标注</button>
+    </div>
+    
+    <div class="log" id="log">
+        标注数量: <span id="count">0</span><br>
+        标注数据: <span id="data">[]</span>
+    </div>
+    
+    <div class="test-area" id="test-area">
+        <p>点击"添加标注"按钮测试</p>
+    </div>
+    
+    <script>
+        let annotations = [];
+        let annotationCount = 0;
+        
+        function log(message) {
+            console.log(message);
+            document.getElementById('log').innerHTML += message + '<br>';
+        }
+        
+        function updateDisplay() {
+            document.getElementById('count').textContent = annotations.length;
+            document.getElementById('data').textContent = JSON.stringify(annotations);
+        }
+        
+        function addAnnotation() {
+            annotationCount++;
+            const annotation = {
+                id: annotationCount,
+                x: Math.random() * 0.7,
+                y: Math.random() * 0.7,
+                width: 0.1 + Math.random() * 0.2,
+                height: 0.1 + Math.random() * 0.2,
+                class: 'watermark'
+            };
+            
+            log(`➕ 添加标注 ${annotationCount}: ${JSON.stringify(annotation)}`);
+            log(`📊 添加前: ${annotations.length} 个标注`);
+            
+            annotations.push(annotation);
+            
+            log(`📊 添加后: ${annotations.length} 个标注`);
+            log(`📋 当前所有标注: ${JSON.stringify(annotations)}`);
+            
+            updateDisplay();
+            drawAnnotations();
+        }
+        
+        function drawAnnotations() {
+            const area = document.getElementById('test-area');
+            // 清除现有标注
+            const existing = area.querySelectorAll('.annotation');
+            existing.forEach(el => el.remove());
+            
+            // 绘制新标注
+            annotations.forEach((annotation, index) => {
+                const div = document.createElement('div');
+                div.className = 'annotation';
+                div.style.left = (annotation.x * 400) + 'px';
+                div.style.top = (annotation.y * 300) + 'px';
+                div.style.width = (annotation.width * 400) + 'px';
+                div.style.height = (annotation.height * 300) + 'px';
+                div.textContent = annotation.id;
+                area.appendChild(div);
+            });
+        }
+        
+        async function saveAnnotations() {
+            log(`💾 开始保存 ${annotations.length} 个标注`);
+            log(`📋 保存数据: ${JSON.stringify(annotations)}`);
+            
+            try {
+                const response = await fetch('/api/save/test_image.jpg', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(annotations)
+                });
+                
+                log(`📡 保存响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ 保存成功: ${JSON.stringify(result)}`);
+                } else {
+                    log(`❌ 保存失败: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ 保存异常: ${error.message}`);
+            }
+        }
+        
+        async function loadAnnotations() {
+            log(`🔄 开始加载标注`);
+            log(`📊 加载前: ${annotations.length} 个标注`);
+            
+            try {
+                const response = await fetch('/api/labels/test_image.jpg');
+                log(`📡 加载响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const loadedAnnotations = await response.json();
+                    log(`📥 加载到的标注: ${JSON.stringify(loadedAnnotations)}`);
+                    log(`📊 加载后: ${loadedAnnotations.length} 个标注`);
+                    
+                    annotations = loadedAnnotations;
+                    updateDisplay();
+                    drawAnnotations();
+                } else {
+                    log(`📄 标注文件不存在`);
+                }
+            } catch (error) {
+                log(`❌ 加载异常: ${error.message}`);
+            }
+        }
+        
+        function clearAnnotations() {
+            log(`🗑️ 清空标注`);
+            annotations = [];
+            updateDisplay();
+            drawAnnotations();
+        }
+        
+        // 初始化
+        updateDisplay();
+        log('🚀 简单标注测试已启动');
+    </script>
+</body>
+</html>

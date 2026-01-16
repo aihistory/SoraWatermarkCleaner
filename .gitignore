@@ -227,3 +227,7 @@ working_dir
 data
 upload_to_huggingface.py
 resources/best.pt
+
+# FFmpeg binaries (too large for Git)
+ffmpeg/ffmpeg
+ffmpeg/ffprobe

@@ -1,0 +1,47 @@
+---
+globs: sorawm/watermark_*.py,sorawm/iopaint/**/*.py
+---
+
+# 深度学习模型集成规范
+
+## 模型架构
+### 水印检测 (YOLOv11s)
+- **检测器**: [sorawm/watermark_detector.py](mdc:sorawm/watermark_detector.py)
+- **模型权重**: [resources/best.pt](mdc:resources/best.pt)
+- **输入**: RGB 视频帧
+- **输出**: 边界框坐标和置信度
+
+### 水印移除 (LAMA)
+- **清理器**: [sorawm/watermark_cleaner.py](mdc:sorawm/watermark_cleaner.py)
+- **模型**: 基于 IOPaint 的 LAMA 实现
+- **输入**: 原始帧 + 掩码
+- **输出**: 清理后的帧
+
+## 模型管理
+- **自动下载**: 模型首次使用时自动从远程下载
+- **缓存机制**: 模型文件缓存在本地，避免重复下载
+- **版本控制**: 支持模型版本更新和回滚
+
+## 设备优化
+- **GPU 加速**: 优先使用 CUDA 进行推理
+- **内存管理**: 及时释放模型和中间结果
+- **批处理**: 支持批量处理提高效率
+- **设备检测**: [sorawm/utils/devices_utils.py](mdc:sorawm/utils/devices_utils.py)
+
+## 推理优化
+- **模型预热**: 首次推理前进行模型预热
+- **动态批处理**: 根据 GPU 内存动态调整批大小
+- **异步推理**: 支持异步模型推理
+- **进度跟踪**: 实时显示处理进度
+
+## 数据预处理
+- **帧提取**: 高效的视频帧提取和加载
+- **尺寸标准化**: 保持原始视频比例
+- **格式转换**: RGB/BGR 格式转换
+- **掩码生成**: 从检测结果生成处理掩码
+
+## 后处理
+- **插值算法**: [sorawm/utils/imputation_utils.py](mdc:sorawm/utils/imputation_utils.py)
+- **缺失帧填充**: 使用时间序列分析填充未检测到的帧
+- **边界框平滑**: 减少检测结果的抖动
+- **质量保证**: 输出质量验证和错误处理

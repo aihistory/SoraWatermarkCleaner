@@ -1,0 +1,40 @@
+---
+alwaysApply: true
+---
+
+# SoraWatermarkCleaner 项目结构指南
+
+这是一个基于深度学习的 Sora 视频水印移除项目，采用微服务架构和 FastAPI 框架。
+
+## 核心架构
+
+### 主要组件
+- **SoraWM 核心类**: [sorawm/core.py](mdc:sorawm/core.py) - 主要的水印移除处理逻辑
+- **水印检测器**: [sorawm/watermark_detector.py](mdc:sorawm/watermark_detector.py) - 基于 YOLOv11s 的水印检测
+- **水印清理器**: [sorawm/watermark_cleaner.py](mdc:sorawm/watermark_cleaner.py) - 基于 LAMA 模型的水印移除
+- **FastAPI 服务器**: [sorawm/server/app.py](mdc:sorawm/server/app.py) - 微服务 API 端点
+- **Streamlit 应用**: [app.py](mdc:app.py) - 交互式 Web 界面
+
+### 项目入口点
+- **命令行启动**: [start_server.py](mdc:start_server.py) - FastAPI 服务器启动脚本
+- **示例使用**: [example.py](mdc:example.py) - 基本使用示例
+- **配置管理**: [sorawm/configs.py](mdc:sorawm/configs.py) - 项目配置
+
+### 工具模块
+- **视频处理**: [sorawm/utils/video_utils.py](mdc:sorawm/utils/video_utils.py) - 视频加载和处理
+- **设备管理**: [sorawm/utils/devices_utils.py](mdc:sorawm/utils/devices_utils.py) - GPU/CPU 设备管理
+- **下载工具**: [sorawm/utils/download_utils.py](mdc:sorawm/utils/download_utils.py) - 模型下载
+- **插值算法**: [sorawm/utils/imputation_utils.py](mdc:sorawm/utils/imputation_utils.py) - 缺失帧插值
+
+### 数据目录
+- **模型资源**: [resources/](mdc:resources/) - 预训练模型和资源文件
+- **输出目录**: [outputs/](mdc:outputs/) - 处理后的视频输出
+- **训练数据**: [datasets/](mdc:datasets/) - 训练数据集
+- **日志文件**: [logs/](mdc:logs/) - 应用日志
+
+## 技术栈
+- **深度学习**: PyTorch, YOLOv11s, LAMA 模型
+- **Web 框架**: FastAPI, Streamlit
+- **视频处理**: FFmpeg, OpenCV
+- **数据库**: SQLite (用于任务管理)
+- **异步处理**: 后台任务队列

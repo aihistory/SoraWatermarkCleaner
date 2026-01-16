@@ -1,0 +1,49 @@
+---
+globs: *.py
+---
+
+# Python 编码标准
+
+## 代码风格
+- 使用 **中文注释** 和文档字符串
+- 遵循 PEP 8 代码风格规范
+- 使用类型注解 (Type Hints)
+- 优先使用 `pathlib.Path` 而不是 `os.path`
+
+## 导入规范
+```python
+# 标准库导入
+from pathlib import Path
+from typing import Callable, Optional
+
+# 第三方库导入
+import numpy as np
+import torch
+from loguru import logger
+from tqdm import tqdm
+
+# 本地模块导入
+from sorawm.core import SoraWM
+from sorawm.utils.video_utils import VideoLoader
+```
+
+## 错误处理
+- 使用 `loguru` 进行日志记录
+- 适当的异常处理和错误消息
+- 使用 `try-except` 块处理可能失败的操作
+
+## 异步编程
+- 对于 I/O 密集型操作使用 `async/await`
+- FastAPI 路由使用异步函数
+- 使用 `aiofiles` 进行异步文件操作
+
+## 性能优化
+- 使用 GPU 加速 (CUDA) 进行深度学习推理
+- 批量处理视频帧以提高效率
+- 使用进度条 (`tqdm`) 显示处理进度
+- 内存管理：及时释放不需要的变量
+
+## 配置管理
+- 使用 `pydantic` 进行配置验证
+- 环境变量和配置文件分离
+- 支持不同环境的配置切换

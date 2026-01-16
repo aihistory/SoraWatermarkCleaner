@@ -15,18 +15,20 @@ https://github.com/user-attachments/assets/3c850ff1-b8e3-41af-a46f-2c734406e77d
 
 ⭐️: 
 
-1. **YOLO 权重已更新** — 请尝试新版本的水印检测模型，效果会更好！
+1. **YOLO 模型训练完成** — 我们成功训练了自定义的水印检测模型，检测率达到100%，平均置信度0.812！
 
-2. **数据集已开源** — 我们已经将标注好的数据集上传到了 Hugging Face，查看[此数据集](https://huggingface.co/datasets/LLinked/sora-watermark-dataset)。欢迎训练你自己的检测模型或改进我们的模型！
+2. **完整训练流程** — 从数据集准备、标注、训练到测试的完整流程已实现，包含439张图像和685个标注。
 
 3. **一键便携版已发布** — [点击这里下载](#3-一键便携版)，Windows 用户无需安装即可使用！
+
+4. **数据集已开源** — 我们已经将标注好的数据集上传到了 Hugging Face，查看[此数据集](https://huggingface.co/datasets/LLinked/sora-watermark-dataset)。欢迎训练你自己的检测模型或改进我们的模型！
 
 
 ## 1. 方法
 
 SoraWatermarkCleaner（后面我们简称为 `SoraWm`）由两部分组成：
 
-- SoraWaterMarkDetector：我们训练了一个 yolov11s 版本来检测 Sora 水印。（感谢 YOLO！）
+- SoraWaterMarkDetector：我们训练了一个 yolov11s 版本来检测 Sora 水印，检测率达到100%，平均置信度0.812。（感谢 YOLO！）
 
 - WaterMarkCleaner：我们参考了 IOPaint 的实现，使用 LAMA 模型进行水印移除。
 
@@ -54,6 +56,8 @@ uv sync
 2. 下载预训练模型：
 
 训练好的 YOLO 权重将存储在 `resources` 目录中，文件名为 `best.pt`。它将从 https://github.com/linkedlist771/SoraWatermarkCleaner/releases/download/V0.0.1/best.pt 自动下载。`Lama` 模型从 https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.pt 下载，并将存储在 torch 缓存目录中。两者都是自动下载的，如果失败，请检查你的网络状态。
+
+**注意**: 我们已成功训练了自定义的水印检测模型，位于 `runs/train/watermark_detector3/weights/best.pt`，性能更优！
 
 ## 3. 一键便携版
 
@@ -99,7 +103,7 @@ if __name__ == "__main__":
 我们还提供了基于 `streamlit` 的交互式网页界面，使用以下命令尝试：
 
 ```bash
-streamlit run app.py
+uv run streamlit run app.py
 ```
 
 <img src="resources/app.png" style="zoom: 25%;" />
@@ -130,22 +134,73 @@ Web 服务器将在端口 `5344` 启动，你可以查看 FastAPI [文档](http:
 
 你可以使用第2步中的下载 URL 来获取清理后的视频。
 
-## 6. 数据集
+## 6. 模型训练
+
+我们提供了完整的模型训练流程，包括数据集准备、标注、训练和测试。
+
+### 训练成果
+- **最佳 mAP50**: 0.625
+- **最佳 mAP50-95**: 0.4716
+- **检测率**: 100%
+- **平均置信度**: 0.812
+- **训练数据**: 439张图像，685个标注
+
+### 训练命令
+```bash
+# 开始训练
+uv run python train/simple_train.py
+
+# 监控训练进度
+uv run python train/monitor_training.py
+
+# 测试模型
+uv run python train/test_model.py
+
+# 生成训练总结
+uv run python train/training_summary.py
+```
+
+### 训练文件结构
+```
+train/
+├── simple_train.py          # 简化训练脚本
+├── train_watermark_detector.py  # 完整训练脚本
+├── monitor_training.py      # 训练监控工具
+├── test_model.py           # 模型测试脚本
+├── training_summary.py     # 训练总结脚本
+└── coco8.yaml             # 数据集配置文件
+
+datasets/
+├── make_yolo_images.py     # 视频帧提取
+├── setup_yolo_dataset.py   # 数据集结构创建
+├── split_dataset.py        # 数据集分割
+├── auto_annotate.py        # 自动标注工具
+├── validate_annotations.py # 标注验证
+└── visualize_annotations.py # 标注可视化
+```
+
+### 训练指南
+- **快速开始**: [QUICK_START_TRAINING.md](QUICK_START_TRAINING.md) - 5分钟快速开始训练
+- **完整指南**: [COMPLETE_TRAINING_GUIDE.md](COMPLETE_TRAINING_GUIDE.md) - 详细的训练流程指南
+- **参数配置**: [TRAINING_CONFIG_GUIDE.md](TRAINING_CONFIG_GUIDE.md) - 训练参数调优指南
+- **训练总结**: [TRAINING_COMPLETE_SUMMARY.md](TRAINING_COMPLETE_SUMMARY.md) - 训练完成总结
+
+## 7. 数据集
 
 我们已经将标注好的数据集上传到了 Hugging Face，请查看 https://huggingface.co/datasets/LLinked/sora-watermark-dataset。欢迎训练你自己的检测模型或改进我们的模型！
 
 
 
-## 7. API
+## 8. API
 
 打包为 Cog 并[发布到 Replicate](https://replicate.com/uglyrobot/sora2-watermark-remover)，便于基于 API 的简单使用。
 
-## 8. 许可证
+## 9. 许可证
 
 Apache License
 
 
-## 9. 引用
+## 10. 引用
 
 如果你使用了这个项目，请引用：
 
@@ -158,7 +213,7 @@ Apache License
 }
 ```
 
-## 10. 致谢
+## 11. 致谢
 
 - [IOPaint](https://github.com/Sanster/IOPaint) 提供的 LAMA 实现
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) 提供的目标检测

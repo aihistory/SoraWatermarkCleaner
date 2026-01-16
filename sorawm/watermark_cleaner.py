@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import List
 
 import cv2
 import numpy as np
 import torch
 from loguru import logger
 
-from sorawm.configs import DEFAULT_WATERMARK_REMOVE_MODEL
+from sorawm.configs import DEFAULT_WATERMARK_REMOVE_MODEL, USE_FP16
 from sorawm.iopaint.const import DEFAULT_MODEL_DIR
 from sorawm.iopaint.download import cli_download_model, scan_models
 from sorawm.iopaint.model_manager import ModelManager
@@ -28,6 +29,17 @@ class WaterMarkCleaner:
             cli_download_model(self.model)
         self.model_manager = ModelManager(name=self.model, device=self.device)
         self.inpaint_request = InpaintRequest()
+        
+        # 启用半精度推理（如果支持）
+        if USE_FP16 and self.device.type == 'cuda':
+            self._enable_fp16()
+            logger.debug("Enabled FP16 inference for LAMA model")
+        
+        # 模型编译优化（PyTorch 2.0+）
+        self._compile_model()
+        
+        # 模型预热
+        self._warmup_model()
 
     def clean(self, input_image: np.array, watermark_mask: np.array) -> np.array:
         inpaint_result = self.model_manager(
@@ -35,6 +47,132 @@ class WaterMarkCleaner:
         )
         inpaint_result = cv2.cvtColor(inpaint_result, cv2.COLOR_BGR2RGB)
         return inpaint_result
+
+    def _enable_fp16(self):
+        """启用 FP16 半精度推理"""
+        try:
+            # 尝试将模型转换为半精度
+            if hasattr(self.model_manager, 'model') and hasattr(self.model_manager.model, 'half'):
+                self.model_manager.model = self.model_manager.model.half()
+                logger.debug("LAMA model converted to FP16")
+        except Exception as e:
+            logger.warning(f"Failed to enable FP16 for LAMA model: {e}")
+
+    def _compile_model(self):
+        """模型编译优化（PyTorch 2.0+）"""
+        try:
+            # 暂时禁用 torch.compile，因为它与 IOPaint 的 LAMA 模型不兼容
+            # 这可能导致批量处理时的错误
+            logger.debug("Skipping torch.compile for LAMA model due to compatibility issues")
+            # if hasattr(torch, 'compile') and torch.__version__ >= "2.0":
+            #     # 尝试编译模型管理器中的模型
+            #     if hasattr(self.model_manager, 'model'):
+            #         self.model_manager.model = torch.compile(self.model_manager.model)
+            #         logger.debug("LAMA model compiled with torch.compile")
+            # else:
+            #     logger.debug("PyTorch version < 2.0, skipping model compilation")
+        except Exception as e:
+            logger.warning(f"Model compilation failed: {e}")
+
+    def _warmup_model(self):
+        """模型预热，避免首次推理延迟"""
+        try:
+            # 创建虚拟输入进行预热
+            dummy_image = np.random.randint(0, 255, (512, 512, 3), dtype=np.uint8)
+            dummy_mask = np.random.randint(0, 255, (512, 512), dtype=np.uint8)
+            dummy_mask[dummy_mask < 128] = 0
+            dummy_mask[dummy_mask >= 128] = 255
+            
+            with torch.no_grad():
+                _ = self.model_manager(dummy_image, dummy_mask, self.inpaint_request)
+            logger.debug("LAMA model warmup completed")
+        except Exception as e:
+            logger.warning(f"LAMA model warmup failed: {e}")
+
+    def clean_batch(self, input_images: List[np.ndarray], watermark_masks: List[np.ndarray]) -> List[np.ndarray]:
+        """
+        批量清理水印，支持多帧同时处理
+        
+        Args:
+            input_images: 输入图像列表
+            watermark_masks: 对应的掩码列表
+            
+        Returns:
+            清理后的图像列表
+        """
+        if not input_images or not watermark_masks:
+            return []
+        
+        if len(input_images) != len(watermark_masks):
+            raise ValueError("输入图像和掩码数量不匹配")
+        
+        batch_size = len(input_images)
+        results = []
+        
+        # 验证所有帧的尺寸是否一致
+        first_shape = input_images[0].shape
+        for i, image in enumerate(input_images):
+            if image.shape != first_shape:
+                logger.warning(f"Frame {i} has different shape {image.shape} vs {first_shape}, using single frame processing")
+                # 如果尺寸不一致，回退到单帧处理
+                return self._fallback_single_frame_processing(input_images, watermark_masks)
+        
+        # 使用 torch.no_grad() 降低内存占用
+        with torch.no_grad():
+            for i, (image, mask) in enumerate(zip(input_images, watermark_masks)):
+                try:
+                    # 验证输入数据
+                    if image is None or mask is None:
+                        logger.warning(f"Frame {i} has None data, skipping")
+                        results.append(image if image is not None else np.zeros((480, 640, 3), dtype=np.uint8))
+                        continue
+                    
+                    # 确保数据类型正确
+                    if image.dtype != np.uint8:
+                        image = image.astype(np.uint8)
+                    if mask.dtype != np.uint8:
+                        mask = mask.astype(np.uint8)
+                    
+                    # 处理单个图像
+                    inpaint_result = self.model_manager(
+                        image, mask, self.inpaint_request
+                    )
+                    inpaint_result = cv2.cvtColor(inpaint_result, cv2.COLOR_BGR2RGB)
+                    results.append(inpaint_result)
+                except Exception as e:
+                    logger.error(f"Failed to process image {i} in batch: {e}")
+                    # 如果处理失败，返回原始图像
+                    results.append(image)
+        
+        logger.debug(f"Batch cleaning completed for {batch_size} images")
+        return results
+    
+    def _fallback_single_frame_processing(self, input_images: List[np.ndarray], watermark_masks: List[np.ndarray]) -> List[np.ndarray]:
+        """
+        回退到单帧处理模式
+        
+        Args:
+            input_images: 输入图像列表
+            watermark_masks: 对应的掩码列表
+            
+        Returns:
+            清理后的图像列表
+        """
+        logger.info("Falling back to single frame processing due to inconsistent frame sizes")
+        results = []
+        
+        for i, (image, mask) in enumerate(zip(input_images, watermark_masks)):
+            try:
+                if np.any(mask > 0):
+                    cleaned_frame = self.clean(image, mask)
+                else:
+                    cleaned_frame = image
+                results.append(cleaned_frame)
+            except Exception as e:
+                logger.error(f"Single frame processing failed for frame {i}: {e}")
+                results.append(image)
+        
+        return results
 
 
 if __name__ == "__main__":

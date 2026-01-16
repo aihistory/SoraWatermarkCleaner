@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>标注调试工具</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .test-button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .test-button:hover { background: #0056b3; }
+        .log { background: #000; color: #0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-family: monospace; height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 标注调试工具</h1>
+    
+    <div class="debug-info">
+        <h3>当前状态</h3>
+        <p>标注数量: <span id="annotation-count">0</span></p>
+        <p>当前图像: <span id="current-image">未加载</span></p>
+    </div>
+    
+    <div>
+        <button class="test-button" onclick="testAddAnnotation()">添加测试标注</button>
+        <button class="test-button" onclick="testSaveAnnotations()">保存标注</button>
+        <button class="test-button" onclick="testLoadAnnotations()">加载标注</button>
+        <button class="test-button" onclick="clearLog()">清空日志</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+    
+    <script>
+        let annotations = [];
+        let currentImageName = 'test_image.jpg';
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus() {
+            document.getElementById('annotation-count').textContent = annotations.length;
+            document.getElementById('current-image').textContent = currentImageName;
+        }
+        
+        function testAddAnnotation() {
+            const annotation = {
+                x: Math.random() * 0.8,
+                y: Math.random() * 0.8,
+                width: 0.1 + Math.random() * 0.2,
+                height: 0.1 + Math.random() * 0.2,
+                class: 'watermark'
+            };
+            
+            log(`➕ 添加标注前: ${annotations.length} 个标注`);
+            annotations.push(annotation);
+            log(`➕ 添加标注后: ${annotations.length} 个标注`);
+            log(`📋 标注数据: ${JSON.stringify(annotation)}`);
+            updateStatus();
+        }
+        
+        async function testSaveAnnotations() {
+            log(`💾 开始保存 ${annotations.length} 个标注`);
+            log(`📋 保存数据: ${JSON.stringify(annotations)}`);
+            
+            try {
+                const response = await fetch(`/api/save/${currentImageName}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(annotations)
+                });
+                
+                log(`📡 保存响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ 保存成功: ${JSON.stringify(result)}`);
+                } else {
+                    log(`❌ 保存失败: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ 保存异常: ${error.message}`);
+            }
+        }
+        
+        async function testLoadAnnotations() {
+            log(`🔄 开始加载标注`);
+            
+            try {
+                const response = await fetch(`/api/labels/${currentImageName}`);
+                log(`📡 加载响应状态: ${response.status}`);
+                
+                if (response.ok) {
+                    const loadedAnnotations = await response.json();
+                    log(`📥 加载到的标注: ${JSON.stringify(loadedAnnotations)}`);
+                    log(`📊 加载前: ${annotations.length} 个，加载后: ${loadedAnnotations.length} 个`);
+                    annotations = loadedAnnotations;
+                    updateStatus();
+                } else {
+                    log(`📄 标注文件不存在`);
+                }
+            } catch (error) {
+                log(`❌ 加载异常: ${error.message}`);
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // 初始化
+        updateStatus();
+        log('🚀 标注调试工具已启动');
+    </script>
+</body>
+</html>

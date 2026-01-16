@@ -1,0 +1,44 @@
+---
+globs: sorawm/server/*.py,start_server.py
+---
+
+# FastAPI 微服务架构规范
+
+## 服务架构
+- **无状态设计**: 服务不保存状态，使用外部存储 (SQLite) 和缓存
+- **API 网关模式**: 通过 FastAPI 提供统一的 API 接口
+- **异步处理**: 使用后台任务处理耗时的视频处理操作
+
+## 路由设计
+参考 [sorawm/server/router.py](mdc:sorawm/server/router.py) 的 API 端点：
+- `POST /submit_remove_task` - 提交水印移除任务
+- `GET /get_results/{task_id}` - 获取任务状态和结果
+- `GET /download/{task_id}` - 下载处理后的视频
+
+## 数据模型
+使用 Pydantic 模型定义 API 请求和响应：
+- [sorawm/server/schemas.py](mdc:sorawm/server/schemas.py) - API 数据模式
+- [sorawm/server/models.py](mdc:sorawm/server/models.py) - 数据库模型
+
+## 数据库管理
+- 使用 SQLAlchemy ORM 进行数据库操作
+- [sorawm/server/db.py](mdc:sorawm/server/db.py) - 数据库连接和会话管理
+- 任务状态跟踪和结果存储
+
+## 中间件和安全性
+- 请求日志记录和监控
+- 文件上传大小限制
+- CORS 配置支持跨域请求
+- 错误处理和异常响应
+
+## 部署配置
+- 使用 Uvicorn 作为 ASGI 服务器
+- 支持多进程部署 (`--workers` 参数)
+- 环境变量配置 (host, port, workers)
+- 日志轮转和持久化
+
+## 监控和可观测性
+- 结构化日志记录
+- 任务进度跟踪
+- 性能指标收集
+- 健康检查端点
